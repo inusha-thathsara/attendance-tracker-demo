@@ -1,0 +1,81 @@
+# Attendance Tracker
+
+A powerful, cross-platform Flutter application designed to help university students manage their timetables, track attendance, and stay organized with AI-powered automation.
+
+## 🚀 Features
+
+### 📅 Smart Timetable Management
+*   **Multiple Timetables**: Manage schedules for different semesters or exam periods.
+*   **Flexible Entries**: Support for Lectures, Tutorials, and Labs with custom locations and modes (Online/In-person).
+*   **Cascading Delete**: Deleting a module automatically cleans up all associated classes to keep your schedule clutter-free.
+
+### 🤖 AI-Powered Automation
+*   **PDF Import**: Upload your official university timetable PDF and let **Google Gemini AI** automatically extract and set up your schedule in seconds.
+*   **Smart Parsing**: Intelligently identifies subject names, times, and class types.
+
+### 🔔 Intelligent Notifications
+*   **Timezone Aware**: Notifications are scheduled based on your **local device time**, ensuring you get alerts even if you travel.
+*   **Pre-Class Alerts**: Get notified 10 minutes before every class so you're never late.
+
+### ✅ Attendance Tracking
+*   **Status Options**: Mark classes as **Present**, **Absent**, or **Cancelled**.
+*   **Visual Stats**: View attendance percentages for each module to ensure you meet university requirements.
+*   **History**: Detailed log of all your attendance records.
+
+### 🎨 User Experience
+*   **Dark/Light Mode**: Fully supported themes that adapt to your system settings or manual preference.
+*   **Offline Support**: Built with **offline-first** architecture. View and edit your data without internet; changes sync automatically when you reconnect.
+*   **Secure Auth**: Cloud-based user authentication via Firebase.
+
+## 🛠️ Tech Stack
+
+*   **Framework**: [Flutter](https://flutter.dev/) (Dart)
+*   **Backend**: [Firebase](https://firebase.google.com/)
+    *   **Firestore**: Real-time NoSQL database with offline persistence.
+    *   **Authentication**: Secure email/password login.
+*   **AI Integration**: [Google Gemini API](https://ai.google.dev/)
+*   **State Management**: [Provider](https://pub.dev/packages/provider)
+*   **Local Storage**: `shared_preferences` for settings.
+*   **Notifications**: `flutter_local_notifications` & `flutter_timezone`.
+
+## 📱 Getting Started
+
+### Prerequisites
+*   Flutter SDK (v3.0+)
+*   Firebase Project (Auth & Firestore enabled)
+*   Google Gemini API Key (for AI features)
+
+### Installation
+
+1.  **Clone the repository**:
+    ```bash
+    git clone https://github.com/inusha-thathsara/attendance-tracker.git
+    cd attendance_tracker
+    ```
+
+2.  **Install Dependencies**:
+    ```bash
+    flutter pub get
+    ```
+
+3.  **Firebase Setup**:
+    *   Create a project in [Firebase Console](https://console.firebase.google.com/).
+    *   Add Android/iOS apps and download `google-services.json` / `GoogleService-Info.plist`.
+    *   Place config files in `android/app/` and `ios/Runner/` respectively.
+
+4.  **Run the App**:
+    ```bash
+    flutter run
+    ```
+
+## 📸 Screenshots
+
+![Timetable Selection (Dark Mode)](assets/screenshots/timetable_selection_dark.png)
+![Modules (Light Mode)](assets/screenshots/modules_light.png)
+![Stats (Light Mode)](assets/screenshots/stats_light.png)
+![Stats (Dark Mode)](assets/screenshots/stats_dark.png)
+![Timetable (Dark Mode)](assets/screenshots/timetable_dark.png)
+
+## 📄 License
+
+This project is licensed under the MIT License.
