@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/timetable_provider.dart';
 import '../models/timetable_entry.dart';
+import '../models/timetable.dart';
 import '../models/enums.dart';
 import 'package:intl/intl.dart';
 import '../providers/attendance_provider.dart';
@@ -126,7 +127,10 @@ class TimetableScreen extends StatelessWidget {
   }
 
   void _showAttendanceDialog(BuildContext context, TimeTableEntry entry) {
+    final timetableProvider = Provider.of<TimetableProvider>(context, listen: false);
+    final currentTimetable = timetableProvider.currentTimetable;
 
+    if (currentTimetable == null) return;
     
     // Find the date for this entry in the current week
     final now = DateTime.now();
@@ -138,6 +142,7 @@ class TimetableScreen extends StatelessWidget {
       builder: (context) => AttendanceDialog(
         entry: entry,
         initialDate: initialDate,
+        timetable: currentTimetable,
       ),
     );
   }
@@ -159,11 +164,13 @@ class TimetableScreen extends StatelessWidget {
 class AttendanceDialog extends StatefulWidget {
   final TimeTableEntry entry;
   final DateTime initialDate;
+  final Timetable timetable;
 
   const AttendanceDialog({
     super.key,
     required this.entry,
     required this.initialDate,
+    required this.timetable,
   });
 
   @override
@@ -188,8 +195,18 @@ class _AttendanceDialogState extends State<AttendanceDialog> {
     });
   }
 
+  bool _isDateValid(DateTime date) {
+    // Normalize dates to ignore time
+    final start = DateTime(widget.timetable.startDate.year, widget.timetable.startDate.month, widget.timetable.startDate.day);
+    final end = DateTime(widget.timetable.endDate.year, widget.timetable.endDate.month, widget.timetable.endDate.day).add(const Duration(days: 1)).subtract(const Duration(seconds: 1)); // End of day
+    
+    return date.isAfter(start.subtract(const Duration(days: 1))) && date.isBefore(end.add(const Duration(days: 1)));
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isValid = _isDateValid(_selectedDate);
+
     return AlertDialog(
       title: Text('Mark Attendance: ${widget.entry.subjectName}'),
       content: Column(
@@ -202,9 +219,9 @@ class _AttendanceDialogState extends State<AttendanceDialog> {
             onTap: () async {
               final picked = await showDatePicker(
                 context: context,
-                initialDate: _selectedDate,
-                firstDate: DateTime(2020),
-                lastDate: DateTime.now(),
+                initialDate: _isDateValid(_selectedDate) ? _selectedDate : widget.timetable.startDate,
+                firstDate: widget.timetable.startDate,
+                lastDate: widget.timetable.endDate,
                 selectableDayPredicate: (day) => day.weekday == widget.entry.dayOfWeek,
               );
               if (picked != null) {
@@ -215,15 +232,24 @@ class _AttendanceDialogState extends State<AttendanceDialog> {
               }
             },
           ),
+          if (!isValid)
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text(
+                'Selected date is outside the timetable duration.',
+                style: TextStyle(color: Colors.red, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              Expanded(child: _buildStatusButton(AttendanceStatus.present, Colors.green, 'Present')),
+              Expanded(child: _buildStatusButton(AttendanceStatus.present, Colors.green, 'Present', isValid)),
               const SizedBox(width: 4),
-              Expanded(child: _buildStatusButton(AttendanceStatus.absent, Colors.red, 'Absent')),
+              Expanded(child: _buildStatusButton(AttendanceStatus.absent, Colors.red, 'Absent', isValid)),
               const SizedBox(width: 4),
-              Expanded(child: _buildStatusButton(AttendanceStatus.cancelled, Colors.grey, 'Cancelled')),
+              Expanded(child: _buildStatusButton(AttendanceStatus.cancelled, Colors.grey, 'Cancelled', isValid)),
             ],
           ),
           if (_currentStatus != null)
@@ -243,7 +269,10 @@ class _AttendanceDialogState extends State<AttendanceDialog> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => AttendanceHistoryScreen(entry: widget.entry),
+                builder: (context) => AttendanceHistoryScreen(
+                  entry: widget.entry,
+                  timetable: widget.timetable,
+                ),
               ),
             );
           },
@@ -257,18 +286,18 @@ class _AttendanceDialogState extends State<AttendanceDialog> {
     );
   }
 
-  Widget _buildStatusButton(AttendanceStatus status, Color color, String label) {
+  Widget _buildStatusButton(AttendanceStatus status, Color color, String label, bool enabled) {
     final isSelected = _currentStatus == status;
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         backgroundColor: isSelected ? color : null,
         foregroundColor: isSelected ? Colors.white : color,
       ),
-      onPressed: () {
+      onPressed: enabled ? () {
         Provider.of<AttendanceProvider>(context, listen: false)
             .markAttendance(widget.entry.id, _selectedDate, status);
         _loadStatus();
-      },
+      } : null,
       child: Text(label),
     );
   }

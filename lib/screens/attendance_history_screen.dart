@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../models/timetable.dart';
 import '../models/timetable_entry.dart';
 import '../models/enums.dart';
 import '../providers/attendance_provider.dart';
 
 class AttendanceHistoryScreen extends StatefulWidget {
   final TimeTableEntry entry;
+  final Timetable timetable;
 
-  const AttendanceHistoryScreen({super.key, required this.entry});
+  const AttendanceHistoryScreen({super.key, required this.entry, required this.timetable});
 
   @override
   State<AttendanceHistoryScreen> createState() => _AttendanceHistoryScreenState();
@@ -26,18 +28,32 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
   void _generatePastDates() {
     _pastDates = [];
     final now = DateTime.now();
-    // Find the most recent occurrence
-    int diff = widget.entry.dayOfWeek - now.weekday;
-    if (diff > 0) diff -= 7;
     
-    DateTime current = now.add(Duration(days: diff));
+    // Determine the end date for generation (min of now or timetable end)
+    // We want to show history up to today, or up to the end of the semester if it's in the past.
+    // If the semester ends in the future, we stop at today.
+    // If the semester ended in the past, we stop at the end date.
+    DateTime endDate = widget.timetable.endDate;
+    if (now.isBefore(endDate)) {
+      endDate = now;
+    }
+
+    // Start from the end date and go backwards to the start date
+    DateTime current = endDate;
     
-    // Generate for last 12 weeks
-    for (int i = 0; i < 12; i++) {
-      if (current.isBefore(now) || isSameDay(current, now)) {
-         _pastDates.add(current);
-      }
-      current = current.subtract(const Duration(days: 7));
+    // Adjust current to match the day of week
+    while (current.weekday != widget.entry.dayOfWeek) {
+      current = current.subtract(const Duration(days: 1));
+    }
+    
+    // Ensure we didn't go before the start date
+    if (current.isBefore(widget.timetable.startDate)) {
+      return;
+    }
+
+    while (current.isAfter(widget.timetable.startDate) || isSameDay(current, widget.timetable.startDate)) {
+       _pastDates.add(current);
+       current = current.subtract(const Duration(days: 7));
     }
   }
 

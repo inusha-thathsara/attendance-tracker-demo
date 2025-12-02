@@ -121,6 +121,22 @@ class FirestoreService {
     });
   }
 
+  Stream<List<TimeTableEntry>> getAllTimetableEntriesStream([String? uid]) {
+    final targetId = uid ?? userId;
+    if (targetId == null) return Stream.value([]);
+    
+    return _db
+        .collection('users')
+        .doc(targetId)
+        .collection('timetable')
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return TimeTableEntry.fromMap(doc.data(), doc.id);
+      }).toList();
+    });
+  }
+
   Future<void> addTimeTableEntry(TimeTableEntry entry) async {
     if (userId == null) return;
     await _db

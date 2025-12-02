@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -142,14 +143,21 @@ class _AddEntryDialogState extends State<AddEntryDialog> {
           child: const Text('Cancel'),
         ),
         ElevatedButton(
-          onPressed: () {
+          onPressed: () async {
             if (_formKey.currentState!.validate()) {
               _formKey.currentState!.save();
+
+              // Check for conflicts
+              final conflict = _checkForConflict(context);
+              if (conflict != null) {
+                final proceed = await _showConflictDialog(context, conflict);
+                if (!proceed) return;
+              }
+
               final entry = TimeTableEntry(
                 id: widget.entry?.id ?? const Uuid().v4(),
                 subjectName: _subjectName,
                 type: _type,
-
                 dayOfWeek: _dayOfWeek,
                 startTimeHour: _startTime.hour,
                 startTimeMinute: _startTime.minute,
@@ -161,18 +169,72 @@ class _AddEntryDialogState extends State<AddEntryDialog> {
                 timetableId: widget.entry?.timetableId,
               );
               
-              if (widget.entry != null) {
-                Provider.of<TimetableProvider>(context, listen: false)
-                    .updateEntry(entry);
-              } else {
-                Provider.of<TimetableProvider>(context, listen: false).addEntry(entry);
+              if (context.mounted) {
+                if (widget.entry != null) {
+                  Provider.of<TimetableProvider>(context, listen: false)
+                      .updateEntry(entry);
+                } else {
+                  Provider.of<TimetableProvider>(context, listen: false).addEntry(entry);
+                }
+                Navigator.pop(context);
               }
-              Navigator.pop(context);
             }
           },
           child: const Text('Save'),
         ),
       ],
     );
+  }
+
+  TimeTableEntry? _checkForConflict(BuildContext context) {
+    final provider = Provider.of<TimetableProvider>(context, listen: false);
+    final entries = provider.entries;
+    
+    final newStartMinutes = _startTime.hour * 60 + _startTime.minute;
+    final newEndMinutes = _endTime.hour * 60 + _endTime.minute;
+
+    for (var entry in entries) {
+      // Skip if it's the same entry we are editing
+      if (widget.entry != null && entry.id == widget.entry!.id) continue;
+
+      // Check day
+      if (entry.dayOfWeek != _dayOfWeek) continue;
+
+      // Check time overlap
+      final startMinutes = entry.startTimeHour * 60 + entry.startTimeMinute;
+      final endMinutes = entry.endTimeHour * 60 + entry.endTimeMinute;
+
+      if (startMinutes < newEndMinutes && endMinutes > newStartMinutes) {
+        return entry;
+      }
+    }
+    return null;
+  }
+
+  Future<bool> _showConflictDialog(BuildContext context, TimeTableEntry conflict) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Time Conflict'),
+        content: Text(
+          'This class overlaps with "${conflict.subjectName}" (${_formatTime(conflict.startTimeHour, conflict.startTimeMinute)} - ${_formatTime(conflict.endTimeHour, conflict.endTimeMinute)}).\n\nDo you want to save anyway?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save Anyway'),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
+  String _formatTime(int hour, int minute) {
+    final time = TimeOfDay(hour: hour, minute: minute);
+    return time.format(context);
   }
 }

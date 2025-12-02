@@ -19,10 +19,14 @@ A powerful, cross-platform Flutter application designed to help university stude
 
 ### ✅ Attendance Tracking
 *   **Status Options**: Mark classes as **Present**, **Absent**, or **Cancelled**.
+*   **Conflict Detection**: Automatically detects and warns about overlapping classes when adding or editing entries.
+*   **Restricted Marking**: Prevents marking attendance for dates outside the current timetable's duration.
 *   **Visual Stats**: View attendance percentages for each module to ensure you meet university requirements.
-*   **History**: Detailed log of all your attendance records.
+*   **Safe to Skip Calculator**: Set your target percentage (e.g., 80%) and instantly see how many classes you can safely miss or need to attend.
+*   **Smart History**: View detailed attendance logs, automatically filtered to show only relevant dates for the current semester.
 
 ### 🎨 User Experience
+*   **Accordion Modules**: Organize your modules by semester with a buttery-smooth, animated accordion view.
 *   **Dark/Light Mode**: Fully supported themes that adapt to your system settings or manual preference.
 *   **Offline Support**: Built with **offline-first** architecture. View and edit your data without internet; changes sync automatically when you reconnect.
 *   **Secure Auth**: Cloud-based user authentication via Firebase.
