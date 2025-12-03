@@ -8,113 +8,223 @@ import 'package:intl/intl.dart';
 import '../providers/attendance_provider.dart';
 import 'attendance_history_screen.dart';
 import 'add_entry_dialog.dart';
-import '../providers/module_provider.dart';
 
 
 
 
-class TimetableScreen extends StatelessWidget {
+import 'package:table_calendar/table_calendar.dart';
+
+class TimetableScreen extends StatefulWidget {
   const TimetableScreen({super.key});
+
+  @override
+  State<TimetableScreen> createState() => _TimetableScreenState();
+}
+
+class _TimetableScreenState extends State<TimetableScreen> {
+  bool _isCalendarView = false;
+  CalendarFormat _calendarFormat = CalendarFormat.month;
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDay = _focusedDay;
+  }
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<TimetableProvider>(context);
-    final days = [
-      'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
-    ];
+    final currentTimetable = provider.currentTimetable;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manage Timetable'),
         actions: [
-
+          IconButton(
+            icon: Icon(_isCalendarView ? Icons.list : Icons.calendar_month),
+            onPressed: () {
+              setState(() {
+                _isCalendarView = !_isCalendarView;
+              });
+            },
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddEntryDialog(context),
         child: const Icon(Icons.add),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.only(bottom: 80),
-        itemCount: 7,
-        itemBuilder: (context, index) {
-          final day = index + 1;
-          final entries = provider.getEntriesForDay(day);
-          
-          if (entries.isEmpty) return const SizedBox.shrink();
+      body: _isCalendarView 
+          ? _buildCalendarView(provider, currentTimetable)
+          : _buildListView(provider),
+    );
+  }
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  days[index],
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+  Widget _buildListView(TimetableProvider provider) {
+    final days = [
+      'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+    ];
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 80),
+      itemCount: 7,
+      itemBuilder: (context, index) {
+        final day = index + 1;
+        final entries = provider.getEntriesForDay(day);
+        
+        if (entries.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                days[index],
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
-                ...entries.map((entry) {
-                  // Calculate date for status (Current Week Logic)
-                  final now = DateTime.now();
-                  // Find Monday of the current week
-                  final currentMonday = now.subtract(Duration(days: now.weekday - 1));
-                  // Add offset for the entry's day
-                  final date = currentMonday.add(Duration(days: entry.dayOfWeek - 1));
-                  final status = Provider.of<AttendanceProvider>(context).getStatus(entry.id, date);
+            ),
+            ...entries.map((entry) {
+              // Calculate date for status (Current Week Logic)
+              final now = DateTime.now();
+              // Find Monday of the current week
+              final currentMonday = now.subtract(Duration(days: now.weekday - 1));
+              // Add offset for the entry's day
+              final date = currentMonday.add(Duration(days: entry.dayOfWeek - 1));
+              final status = Provider.of<AttendanceProvider>(context).getStatus(entry.id, date);
 
-                  return ListTile(
-                  title: Text(entry.moduleCode != null ? '${entry.moduleCode} - ${entry.subjectName}' : entry.subjectName),
-                  subtitle: Text('${entry.type.name} • ${entry.mode.name}${entry.location != null ? ' • ${entry.location}' : ''} • ${entry.startTime.format(context)} - ${entry.endTime.format(context)}'),
-                  onTap: () => _showAttendanceDialog(context, entry),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (status != null) ...[
-                        _buildStatusIcon(status),
-                        const SizedBox(width: 8),
-                      ],
-                      PopupMenuButton<String>(
-                        onSelected: (value) {
-                          if (value == 'edit') {
-                            _showAddEntryDialog(context, entry: entry);
-                          } else if (value == 'delete') {
-                            provider.deleteEntry(entry.id);
-                          }
-                        },
-                        itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                          const PopupMenuItem<String>(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit, color: Colors.blue),
-                                SizedBox(width: 8),
-                                Text('Edit'),
-                              ],
-                            ),
-                          ),
-                          const PopupMenuItem<String>(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text('Delete'),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-                }),
-              const Divider(),
+              return _buildEntryTile(entry, status);
+            }),
+            const Divider(),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCalendarView(TimetableProvider provider, Timetable? currentTimetable) {
+    if (currentTimetable == null) {
+      return const Center(child: Text('No timetable selected'));
+    }
+
+    return Column(
+      children: [
+        TableCalendar<TimeTableEntry>(
+          firstDay: currentTimetable.startDate,
+          lastDay: currentTimetable.endDate,
+          focusedDay: _focusedDay,
+          calendarFormat: _calendarFormat,
+          selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+          onDaySelected: (selectedDay, focusedDay) {
+            if (!isSameDay(_selectedDay, selectedDay)) {
+              setState(() {
+                _selectedDay = selectedDay;
+                _focusedDay = focusedDay;
+              });
+            }
+          },
+          onFormatChanged: (format) {
+            if (_calendarFormat != format) {
+              setState(() {
+                _calendarFormat = format;
+              });
+            }
+          },
+          onPageChanged: (focusedDay) {
+            _focusedDay = focusedDay;
+          },
+          eventLoader: (day) {
+            // Check if day is within timetable range
+            if (day.isBefore(currentTimetable.startDate) || 
+                day.isAfter(currentTimetable.endDate)) {
+              return [];
+            }
+            return provider.getEntriesForDay(day.weekday);
+          },
+          calendarStyle: const CalendarStyle(
+            markerDecoration: BoxDecoration(
+              color: Colors.blue,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+        const Divider(),
+        Expanded(
+          child: _selectedDay == null
+              ? const Center(child: Text('Select a day'))
+              : Builder(
+                  builder: (context) {
+                    final entries = provider.getEntriesForDay(_selectedDay!.weekday);
+                    if (entries.isEmpty) {
+                      return const Center(child: Text('No classes for this day'));
+                    }
+                    return ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 80),
+                      itemCount: entries.length,
+                      itemBuilder: (context, index) {
+                        final entry = entries[index];
+                        final status = Provider.of<AttendanceProvider>(context).getStatus(entry.id, _selectedDay!);
+                        return _buildEntryTile(entry, status);
+                      },
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEntryTile(TimeTableEntry entry, AttendanceStatus? status) {
+    final provider = Provider.of<TimetableProvider>(context, listen: false);
+    
+    return ListTile(
+      title: Text(entry.moduleCode != null ? '${entry.moduleCode} - ${entry.subjectName}' : entry.subjectName),
+      subtitle: Text('${entry.type.name} • ${entry.mode.name}${entry.location != null ? ' • ${entry.location}' : ''} • ${entry.startTime.format(context)} - ${entry.endTime.format(context)}'),
+      onTap: () => _showAttendanceDialog(context, entry),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (status != null) ...[
+            _buildStatusIcon(status),
+            const SizedBox(width: 8),
+          ],
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'edit') {
+                _showAddEntryDialog(context, entry: entry);
+              } else if (value == 'delete') {
+                provider.deleteEntry(entry.id);
+              }
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              const PopupMenuItem<String>(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit, color: Colors.blue),
+                    SizedBox(width: 8),
+                    Text('Edit'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Delete'),
+                  ],
+                ),
+              ),
             ],
-          );
-        },
+          ),
+        ],
       ),
     );
   }
@@ -132,16 +242,21 @@ class TimetableScreen extends StatelessWidget {
 
     if (currentTimetable == null) return;
     
-    // Find the date for this entry in the current week
-    final now = DateTime.now();
-    final currentMonday = now.subtract(Duration(days: now.weekday - 1));
-    final initialDate = currentMonday.add(Duration(days: entry.dayOfWeek - 1));
+    // Use selected day if in calendar view, otherwise calculate for current week
+    DateTime targetDate;
+    if (_isCalendarView && _selectedDay != null) {
+      targetDate = _selectedDay!;
+    } else {
+      final now = DateTime.now();
+      final currentMonday = now.subtract(Duration(days: now.weekday - 1));
+      targetDate = currentMonday.add(Duration(days: entry.dayOfWeek - 1));
+    }
     
     showDialog(
       context: context,
       builder: (context) => AttendanceDialog(
         entry: entry,
-        initialDate: initialDate,
+        initialDate: targetDate,
         timetable: currentTimetable,
       ),
     );

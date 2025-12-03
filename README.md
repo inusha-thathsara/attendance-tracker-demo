@@ -8,6 +8,7 @@ A powerful, cross-platform Flutter application designed to help university stude
 *   **Multiple Timetables**: Manage schedules for different semesters or exam periods.
 *   **Flexible Entries**: Support for Lectures, Tutorials, and Labs with custom locations and modes (Online/In-person).
 *   **Cascading Delete**: Deleting a module automatically cleans up all associated classes to keep your schedule clutter-free.
+*   **Calendar View**: Switch between a weekly list and a monthly calendar view to visualize your schedule.
 
 ### 🤖 AI-Powered Automation
 *   **PDF Import**: Upload your official university timetable PDF and let **Google Gemini AI** automatically extract and set up your schedule in seconds.

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../models/module.dart';
 import '../models/timetable_entry.dart';
 import '../providers/timetable_provider.dart';
-import '../providers/module_provider.dart';
 import 'modules_screen.dart'; // For AddModuleDialog
 import 'add_entry_dialog.dart';
 import '../models/enums.dart';
