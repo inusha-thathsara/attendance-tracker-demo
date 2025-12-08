@@ -6,6 +6,7 @@ import '../models/timetable.dart';
 import '../models/enums.dart';
 import 'package:intl/intl.dart';
 import '../providers/attendance_provider.dart';
+import '../providers/module_provider.dart';
 import 'attendance_history_screen.dart';
 import 'add_entry_dialog.dart';
 
@@ -13,6 +14,12 @@ import 'add_entry_dialog.dart';
 
 
 import 'package:table_calendar/table_calendar.dart';
+
+import 'import_preview_screen.dart';
+
+import 'package:qr_flutter/qr_flutter.dart';
+import '../services/firestore_service.dart';
+import 'qr_scanner_screen.dart';
 
 class TimetableScreen extends StatefulWidget {
   const TimetableScreen({super.key});
@@ -43,6 +50,31 @@ class _TimetableScreenState extends State<TimetableScreen> {
         title: const Text('Manage Timetable'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.qr_code_scanner),
+            tooltip: 'Scan QR',
+            onPressed: () {
+               Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const QRScannerScreen()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.share),
+            tooltip: 'Share Timetable',
+            onPressed: () => _showShareDialog(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.upload_file),
+            tooltip: 'Import Timetable',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ImportPreviewScreen()),
+              );
+            },
+          ),
+          IconButton(
             icon: Icon(_isCalendarView ? Icons.list : Icons.calendar_month),
             onPressed: () {
               setState(() {
@@ -60,6 +92,118 @@ class _TimetableScreenState extends State<TimetableScreen> {
           ? _buildCalendarView(provider, currentTimetable)
           : _buildListView(provider),
     );
+  }
+
+  Future<void> _showShareDialog(BuildContext context) async {
+    final timetableProvider = Provider.of<TimetableProvider>(context, listen: false);
+    final moduleProvider = Provider.of<ModuleProvider>(context, listen: false);
+    final timetable = timetableProvider.currentTimetable;
+
+    if (timetable == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No timetable selected to share')),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    // Filter modules to only include those used in this timetable
+    final usedModuleCodes = timetableProvider.entries
+        .map((e) => e.moduleCode)
+        .where((code) => code != null && code.isNotEmpty)
+        .toSet();
+    
+    var modulesToShare = moduleProvider.modules
+        .where((m) => usedModuleCodes.contains(m.code))
+        .toList();
+
+    debugPrint('Sharing ${modulesToShare.length} modules for ${usedModuleCodes.length} used codes.');
+    
+    // Fallback: If filter resulted in 0 modules but we have used codes, or just to be safe if user expects modules
+    // If the logical filter returns 0, it might be due to mismatch codes. 
+    // Let's default to ALL modules if the filtered list is empty but we have modules available.
+    if (modulesToShare.isEmpty && moduleProvider.modules.isNotEmpty) {
+      debugPrint('Filter returned 0 modules. Fallback to sharing ALL ${moduleProvider.modules.length} modules.');
+      modulesToShare = moduleProvider.modules;
+    }
+
+    if (mounted) {
+       ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Generating share for ${modulesToShare.length} modules...')),
+      );
+    }
+
+    try {
+      final shareId = await FirestoreService().shareTimetable(
+        timetable,
+        modulesToShare,
+        timetableProvider.entries,
+      );
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Share Timetable'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 200,
+                  height: 200,
+                  child: QrImageView(
+                    data: shareId,
+                    version: QrVersions.auto,
+                    backgroundColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Scan this QR code with another device to import this timetable.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Closing this dialog will delete the shared link.',
+                  style: TextStyle(color: Colors.red, fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Done'),
+              ),
+            ],
+          ),
+        );
+        // Delete the shared timetable after dialog closes
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Cleaning up shared link...')),
+          );
+        }
+        try {
+          await FirestoreService().deleteSharedTimetable(shareId);
+        } catch (e) {
+          debugPrint('Error deleting share: $e');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error sharing: $e')),
+        );
+      }
+    }
   }
 
   Widget _buildListView(TimetableProvider provider) {
@@ -112,12 +256,20 @@ class _TimetableScreenState extends State<TimetableScreen> {
       return const Center(child: Text('No timetable selected'));
     }
 
+    // Ensure focusedDay is within range
+    DateTime focusedDay = _focusedDay;
+    if (focusedDay.isBefore(currentTimetable.startDate)) {
+      focusedDay = currentTimetable.startDate;
+    } else if (focusedDay.isAfter(currentTimetable.endDate)) {
+      focusedDay = currentTimetable.endDate;
+    }
+
     return Column(
       children: [
         TableCalendar<TimeTableEntry>(
           firstDay: currentTimetable.startDate,
           lastDay: currentTimetable.endDate,
-          focusedDay: _focusedDay,
+          focusedDay: focusedDay,
           calendarFormat: _calendarFormat,
           selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
           onDaySelected: (selectedDay, focusedDay) {
@@ -230,6 +382,37 @@ class _TimetableScreenState extends State<TimetableScreen> {
   }
 
   void _showAddEntryDialog(BuildContext context, {TimeTableEntry? entry}) {
+    final provider = Provider.of<TimetableProvider>(context, listen: false);
+    final moduleProvider = Provider.of<ModuleProvider>(context, listen: false);
+
+    if (provider.currentTimetable == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text('Please select or create a timetable first'),
+            ],
+          ),
+        ),
+      );
+      Scaffold.of(context).openDrawer();
+      return;
+    }
+
+    if (moduleProvider.modules.isEmpty) {
+       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Text('Please add modules first before adding classes'),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
     showDialog(
       context: context,
       builder: (context) => AddEntryDialog(entry: entry),

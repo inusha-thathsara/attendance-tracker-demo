@@ -34,4 +34,20 @@ class Timetable {
       isCurrent: map['isCurrent'] ?? false,
     );
   }
+
+  Timetable copyWith({
+    String? id,
+    String? name,
+    DateTime? startDate,
+    DateTime? endDate,
+    bool? isCurrent,
+  }) {
+    return Timetable(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      isCurrent: isCurrent ?? this.isCurrent,
+    );
+  }
 }

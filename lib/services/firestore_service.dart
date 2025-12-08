@@ -3,7 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/timetable_entry.dart';
 import '../models/timetable.dart';
 import '../models/module.dart';
-import '../models/attendance_record.dart';
+import 'package:attendance_tracker/models/attendance_record.dart';
+import 'package:flutter/foundation.dart'; // For debugPrint
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -64,15 +65,72 @@ class FirestoreService {
 
   Future<void> deleteTimetable(String id) async {
     if (userId == null) return;
-    await _db
+
+    // 1. Fetch all entries for THIS timetable to know what we are about to remove
+    final entriesSnapshot = await _db
+        .collection('users')
+        .doc(userId)
+        .collection('timetable')
+        .where('timetableId', isEqualTo: id)
+        .get();
+
+    final entriesToDelete = entriesSnapshot.docs;
+    final modulesInThisTimetable = entriesToDelete
+        .map((e) => e.data()['moduleCode'] as String?)
+        .where((code) => code != null && code.isNotEmpty)
+        .toSet()
+        .cast<String>();
+
+    // 2. Fetch ALL other entries to see what is being preserved
+    // We can't do "where timetableId != id" easily in Firestore without composite index often.
+    // Easier to just fetch all entries and filter in memory since user won't have millions of entries.
+    final allEntriesSnapshot = await _db
+        .collection('users')
+        .doc(userId)
+        .collection('timetable')
+        .get();
+        
+    final otherModulesUsage = allEntriesSnapshot.docs
+        .where((doc) => doc.data()['timetableId'] != id)
+        .map((doc) => doc.data()['moduleCode'] as String?)
+        .where((code) => code != null && code.isNotEmpty)
+        .toSet();
+
+    // 3. Identify orphaned modules (In this timetable BUT NOT in others)
+    final modulesToDelete = modulesInThisTimetable
+        .where((code) => !otherModulesUsage.contains(code))
+        .toList();
+
+    debugPrint('Deleting Timetable $id');
+    debugPrint('Found ${entriesToDelete.length} entries to delete.');
+    debugPrint('Found ${modulesToDelete.length} orphan modules to delete: $modulesToDelete');
+
+    final batch = _db.batch();
+
+    // Delete Entries
+    for (var doc in entriesToDelete) {
+      batch.delete(doc.reference);
+    }
+    
+    // Delete Orphan Modules
+    for (var code in modulesToDelete) {
+      final moduleRef = _db
+          .collection('users')
+          .doc(userId)
+          .collection('modules')
+          .doc(code);
+      batch.delete(moduleRef);
+    }
+    
+    // Delete Timetable
+    final timetableRef = _db
         .collection('users')
         .doc(userId)
         .collection('timetables')
-        .doc(id)
-        .delete();
-        
-    // Also delete associated entries? Or keep them orphaned?
-    // For now, let's keep them but they won't show up if filtering by ID.
+        .doc(id);
+    batch.delete(timetableRef);
+
+    await batch.commit();
   }
 
   Future<void> _unsetCurrentTimetables() async {
@@ -249,5 +307,114 @@ class FirestoreService {
         .collection('attendance')
         .doc(id)
         .delete();
+  }
+  // --- Settings (API Key) ---
+
+  Future<List<String>> getApiKeys([String? uid]) async {
+    final targetId = uid ?? userId;
+    if (targetId == null) return [];
+    final doc = await _db
+        .collection('users')
+        .doc(targetId)
+        .collection('settings')
+        .doc('gemini')
+        .get();
+    
+    if (doc.exists && doc.data() != null) {
+      final data = doc.data()!;
+      if (data['apiKeys'] != null) {
+        return List<String>.from(data['apiKeys']);
+      } else if (data['apiKey'] != null) {
+        // Migration: If old single key exists, return it as a list
+        return [data['apiKey'] as String];
+      }
+    }
+    return [];
+  }
+
+  Future<void> saveApiKeys(List<String> apiKeys, [String? uid]) async {
+    final targetId = uid ?? userId;
+    if (targetId == null) return;
+    await _db
+        .collection('users')
+        .doc(targetId)
+        .collection('settings')
+        .doc('gemini')
+        .set({'apiKeys': apiKeys});
+  }
+
+  // --- Profile (Avatar) ---
+
+  Future<String?> getAvatarKey([String? uid]) async {
+    final targetId = uid ?? userId;
+    if (targetId == null) return null;
+    final doc = await _db
+        .collection('users')
+        .doc(targetId)
+        .collection('settings')
+        .doc('profile')
+        .get();
+
+    if (doc.exists && doc.data() != null) {
+      return doc.data()!['avatarKey'] as String?;
+    }
+    return null;
+  }
+
+  Future<void> saveAvatarKey(String key, [String? uid]) async {
+    final targetId = uid ?? userId;
+    if (targetId == null) return;
+    await _db
+        .collection('users')
+        .doc(targetId)
+        .collection('settings')
+        .doc('profile')
+        .set({'avatarKey': key}, SetOptions(merge: true));
+  }
+
+  // --- Sharing ---
+
+  Future<String> shareTimetable(
+    Timetable timetable,
+    List<Module> modules,
+    List<TimeTableEntry> entries,
+  ) async {
+    if (userId == null) throw Exception('User must be logged in to share');
+
+    // Create a lean representation of the data
+    final shareData = {
+      'timetable': timetable.toMap(),
+      'modules': modules.map((m) => m.toMap()).toList(),
+      'entries': entries.map((e) => e.toMap()).toList(),
+      'sharedBy': userId,
+      'sharedAt': FieldValue.serverTimestamp(),
+      'expiresAt': Timestamp.fromDate(DateTime.now().add(const Duration(hours: 24))), // For TTL
+    };
+
+    final docRef = await _db.collection('shared_timetables').add(shareData);
+    return docRef.id;
+  }
+
+  Future<Map<String, dynamic>> fetchSharedTimetable(String shareId) async {
+    final doc = await _db.collection('shared_timetables').doc(shareId).get();
+    if (!doc.exists) {
+      throw Exception('Shared timetable not found');
+    }
+
+    final data = doc.data() as Map<String, dynamic>;
+
+    // Lazy Expiration Check (Alternative to Firestore TTL)
+    if (data.containsKey('expiresAt')) {
+      final Timestamp expiresAt = data['expiresAt'];
+      if (expiresAt.toDate().isBefore(DateTime.now())) {
+        throw Exception('This shared link has expired.');
+      }
+    }
+
+    return data;
+  }
+
+  Future<void> deleteSharedTimetable(String shareId) async {
+    await _db.collection('shared_timetables').doc(shareId).delete();
   }
 }

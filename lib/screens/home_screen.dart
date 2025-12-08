@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../providers/timetable_provider.dart';
 import '../providers/attendance_provider.dart';
+import '../providers/user_provider.dart';
 import '../providers/theme_provider.dart';
 import '../models/timetable_entry.dart';
 import '../models/timetable.dart';
@@ -12,6 +13,7 @@ import '../models/enums.dart';
 import 'timetable_screen.dart';
 import 'stats_screen.dart';
 import 'modules_screen.dart';
+import 'avatar_selection_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,6 +25,14 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<UserProvider>(context, listen: false).loadAvatarKey();
+    });
+  }
+
   final List<Widget> _screens = [
     const _TodayTab(),
     const TimetableScreen(),
@@ -57,14 +67,41 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           children: [
             UserAccountsDrawerHeader(
-              accountName: const Text('My Timetables'),
-              accountEmail: Text(currentTimetable != null 
-                ? '${DateFormat('MMM d').format(currentTimetable.startDate)} - ${DateFormat('MMM d, y').format(currentTimetable.endDate)}'
-                : 'No Timetable Selected'),
-              currentAccountPicture: const CircleAvatar(
-                child: Icon(Icons.calendar_today),
+              accountName: Text(FirebaseAuth.instance.currentUser?.displayName ?? FirebaseAuth.instance.currentUser?.email?.split('@')[0] ?? 'User'),
+              accountEmail: Text(FirebaseAuth.instance.currentUser?.email ?? ''),
+
+              currentAccountPicture: Consumer<UserProvider>(
+                builder: (context, userProvider, _) {
+                  return GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => const AvatarSelectionDialog(),
+                      );
+                    },
+                    child: CircleAvatar(
+                      backgroundImage: userProvider.avatarKey != null
+                          ? AssetImage('assets/avatars/${userProvider.avatarKey}')
+                          : null,
+                      child: userProvider.avatarKey == null
+                          ? Text((FirebaseAuth.instance.currentUser?.email ?? 'U')[0].toUpperCase())
+                          : null,
+                    ),
+                  );
+                },
               ),
             ),
+            if (currentTimetable != null)
+               ListTile(
+                 title: Text('Current: ${currentTimetable.name}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                 subtitle: Text('${DateFormat('MMM d').format(currentTimetable.startDate)} - ${DateFormat('MMM d, y').format(currentTimetable.endDate)}'),
+                 leading: const Icon(Icons.calendar_month),
+               ),
+             const Divider(),
+             const Padding(
+               padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
+               child: Text('All Timetables', style: TextStyle(color: Colors.grey)),
+             ),
             Expanded(
               child: ListView(
                 children: [
@@ -164,7 +201,21 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Timetable'),
-        content: Text('Are you sure you want to delete "${timetable.name}"?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Are you sure you want to delete "${timetable.name}"?'),
+            const SizedBox(height: 16),
+            const Text(
+              '⚠️ This will permanently delete:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text('• All classes in this timetable'),
+            const Text('• Any modules not used in other timetables'),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),

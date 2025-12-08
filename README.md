@@ -6,12 +6,15 @@ A powerful, cross-platform Flutter application designed to help university stude
 
 ### 📅 Smart Timetable Management
 *   **Multiple Timetables**: Manage schedules for different semesters or exam periods.
+*   **Shared Modules**: Modules can exist across multiple timetables (e.g., repeating courses), with updates synced everywhere.
+*   **Structured Data**: Strict module-first architecture ensures data integrity—classes must be linked to valid modules.
 *   **Flexible Entries**: Support for Lectures, Tutorials, and Labs with custom locations and modes (Online/In-person).
 *   **Cascading Delete**: Deleting a module automatically cleans up all associated classes to keep your schedule clutter-free.
 *   **Calendar View**: Switch between a weekly list and a monthly calendar view to visualize your schedule.
 
 ### 🤖 AI-Powered Automation
 *   **PDF Import**: Upload your official university timetable PDF and let **Google Gemini AI** automatically extract and set up your schedule in seconds.
+*   **Multi-API Key Support**: Configure multiple Gemini API keys to handle rate limits and ensure uninterrupted parsing.
 *   **Smart Parsing**: Intelligently identifies subject names, times, and class types.
 
 ### 🔔 Intelligent Notifications
@@ -28,9 +31,12 @@ A powerful, cross-platform Flutter application designed to help university stude
 
 ### 🎨 User Experience
 *   **Accordion Modules**: Organize your modules by semester with a buttery-smooth, animated accordion view.
+*   **Total Credits Display**: Instantly see the total credits for each semester or timetable at a glance.
+*   **Avatar Customization**: Personalize your profile with a selection of built-in avatars, synced across all your devices.
+*   **Secure Sharing**: Share timetables via ephemeral QR codes. The shared link is **automatically deleted** after you close the dialog, ensuring your data remains private.
 *   **Dark/Light Mode**: Fully supported themes that adapt to your system settings or manual preference.
 *   **Offline Support**: Built with **offline-first** architecture. View and edit your data without internet; changes sync automatically when you reconnect.
-*   **Secure Auth**: Cloud-based user authentication via Firebase.
+*   **Secure Auth**: Cloud-based user authentication via Firebase with **Password Reset** functionality.
 
 ## 🛠️ Tech Stack
 
@@ -73,7 +79,7 @@ A powerful, cross-platform Flutter application designed to help university stude
     flutter run
     ```
 
-## 📸 Screenshots
+## 📸 Screenshots (Not updated)
 
 ![Timetable Selection (Dark Mode)](assets/screenshots/timetable_selection_dark.png)
 ![Modules (Light Mode)](assets/screenshots/modules_light.png)

@@ -45,16 +45,31 @@ class _ModulesScreenState extends State<ModulesScreen> {
           // Group modules by timetable
           final Map<String, Set<String>> timetableModuleCodes = {}; // TimetableID -> Set<ModuleCode>
           final Set<String> assignedModuleCodes = {};
+          final Map<String, Set<String>> moduleTimetableIds = {}; // ModuleCode -> Set<TimetableID>
 
           for (var entry in allEntries) {
             if (entry.timetableId != null && entry.moduleCode != null) {
               timetableModuleCodes.putIfAbsent(entry.timetableId!, () => {}).add(entry.moduleCode!);
               assignedModuleCodes.add(entry.moduleCode!);
+              moduleTimetableIds.putIfAbsent(entry.moduleCode!, () => {}).add(entry.timetableId!);
             }
           }
 
           // Find unassigned modules
           final unassignedModules = modules.where((m) => !assignedModuleCodes.contains(m.code)).toList();
+
+          final validTimetableIds = timetables.map((t) => t.id).toSet();
+
+          // Find shared modules
+          final sharedModuleCodes = moduleTimetableIds.entries
+              .where((entry) {
+                final validIdsForModule = entry.value.intersection(validTimetableIds);
+                return validIdsForModule.length > 1;
+              })
+              .map((entry) => entry.key)
+              .toSet();
+          
+          final sharedModules = modules.where((m) => sharedModuleCodes.contains(m.code)).toList();
 
           if (modules.isEmpty) {
             return const Center(child: Text('No modules added yet.'));
@@ -62,6 +77,27 @@ class _ModulesScreenState extends State<ModulesScreen> {
 
           return ListView(
             children: [
+              // Shared Group
+              if (sharedModules.isNotEmpty)
+                _buildAccordionGroup(
+                  title: 'Shared',
+                  subtitle: '${sharedModules.length} Modules',
+                  isExpanded: _expandedTimetableId == 'shared',
+                  onTap: () {
+                    setState(() {
+                      _expandedTimetableId = _expandedTimetableId == 'shared' ? null : 'shared';
+                    });
+                  },
+                  children: sharedModules.map((module) {
+                    final timetableIds = moduleTimetableIds[module.code] ?? {};
+                    final timetableNames = timetables
+                        .where((t) => timetableIds.contains(t.id))
+                        .map((t) => t.name)
+                        .toList();
+                    return _buildModuleTile(context, module, sharedTimetableNames: timetableNames);
+                  }).toList(),
+                ),
+
               // Timetable Groups
               ...timetables.map((timetable) {
                 final moduleCodes = timetableModuleCodes[timetable.id] ?? {};
@@ -71,9 +107,12 @@ class _ModulesScreenState extends State<ModulesScreen> {
 
                 final isExpanded = _expandedTimetableId == timetable.id;
 
+                final totalCredits = timetableModules.fold<double>(0, (sum, m) => sum + m.credits);
+                final creditString = totalCredits % 1 == 0 ? totalCredits.toInt().toString() : totalCredits.toString();
+
                 return _buildAccordionGroup(
                   title: timetable.name,
-                  subtitle: '${timetableModules.length} Modules',
+                  subtitle: '${timetableModules.length} Modules • $creditString Credits',
                   isExpanded: isExpanded,
                   onTap: () {
                     setState(() {
@@ -143,10 +182,16 @@ class _ModulesScreenState extends State<ModulesScreen> {
   }
 
 
-  Widget _buildModuleTile(BuildContext context, Module module) {
+  Widget _buildModuleTile(BuildContext context, Module module, {List<String>? sharedTimetableNames}) {
+    String subtitleText = '${module.credits} Credits • ${module.lecturerName}';
+    if (sharedTimetableNames != null && sharedTimetableNames.isNotEmpty) {
+      subtitleText += '\nShared in: ${sharedTimetableNames.join(", ")}';
+    }
+
     return ListTile(
       title: Text('${module.code} - ${module.name}'),
-      subtitle: Text('${module.credits} Credits • ${module.lecturerName}'),
+      subtitle: Text(subtitleText),
+      isThreeLine: sharedTimetableNames != null && sharedTimetableNames.isNotEmpty,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -172,6 +217,22 @@ class _ModulesScreenState extends State<ModulesScreen> {
   }
 
   void _showAddModuleDialog(BuildContext context, {Module? module}) {
+    final timetableProvider = Provider.of<TimetableProvider>(context, listen: false);
+    if (timetableProvider.currentTimetable == null && module == null) {
+       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text('Please select or create a timetable first'),
+            ],
+          ),
+        ),
+      );
+      Scaffold.of(context).openDrawer();
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) => AddModuleDialog(module: module),

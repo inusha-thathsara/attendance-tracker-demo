@@ -1,0 +1,22 @@
+﻿Analyzing AttendanceTracker...                                  
+
+warning - The include file 'package:flutter_lints/flutter.yaml' in 'E:\Documents\Projects\AttendanceTracker\analysis_options.yaml' can't be found when analyzing 'E:\Documents\Projects\AttendanceTracker' - analysis_options.yaml:10:10 - include_file_not_found
+warning - The declaration '_showTimetableDialog' isn't referenced - lib\screens\home_screen.dart:221:8 - unused_element
+warning - The declaration '_confirmDeleteTimetable' isn't referenced - lib\screens\home_screen.dart:228:16 - unused_element
+  error - The method 'getAttendanceStatus' isn't defined for the type 'AttendanceProvider' - lib\screens\home_screen.dart:476:55 - undefined_method
+  error - The getter 'color' isn't defined for the type 'TimeTableEntry' - lib\screens\home_screen.dart:482:56 - undefined_getter
+  error - The getter 'iconCodePoint' isn't defined for the type 'TimeTableEntry' - lib\screens\home_screen.dart:483:54 - undefined_getter
+  error - The getter 'room' isn't defined for the type 'TimeTableEntry' - lib\screens\home_screen.dart:486:121 - undefined_getter
+warning - Unused import: '../models/timetable.dart' - lib\screens\import_preview_screen.dart:10:8 - unused_import
+warning - Unused import: '../firebase_options.dart' - lib\screens\import_preview_screen.dart:13:8 - unused_import
+warning - Unused import: 'package:uuid/uuid.dart' - lib\screens\import_preview_screen.dart:14:8 - unused_import
+warning - The operand can't be 'null', so the condition is always 'true' - lib\screens\import_preview_screen.dart:100:24 - unnecessary_null_comparison
+   info - 'onPopInvoked' is deprecated and shouldn't be used. Use onPopInvokedWithResult instead. This feature was deprecated after v3.22.0-12.0.pre - lib\screens\import_preview_screen.dart:495:7 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\import_preview_screen.dart:604:61 - deprecated_member_use
+warning - Unused import: '../services/pdf_parser_service.dart' - lib\screens\qr_scanner_screen.dart:8:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\shared_schedule_screen.dart:199:94 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\stats_screen.dart:135:74 - deprecated_member_use
+   info - 'androidAllowWhileIdle' is deprecated and shouldn't be used. Deprecated in favor of the androidScheduleMode parameter - lib\services\notification_service.dart:94:9 - deprecated_member_use
+warning - Unused import: 'package:syncfusion_flutter_pdf/pdf.dart' - lib\services\pdf_parser_service.dart:5:8 - unused_import
+warning - The value of the local variable 'currentStart' isn't used - lib\services\pdf_parser_service.dart:217:20 - unused_local_variable
+

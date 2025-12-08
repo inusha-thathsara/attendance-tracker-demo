@@ -55,34 +55,26 @@ class _AddEntryDialogState extends State<AddEntryDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (modules.isNotEmpty)
-                DropdownButtonFormField<String>(
-                  value: _moduleCode,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Module'),
-                  items: modules.map((m) => DropdownMenuItem(
-                    value: m.code,
-                    child: Text(
-                      '${m.code} - ${m.name}',
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  )).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _moduleCode = value;
-                      final module = modules.firstWhere((m) => m.code == value);
-                      _subjectName = module.name;
-                    });
-                  },
-                  validator: (value) => value == null ? 'Required' : null,
-                )
-              else
-                TextFormField(
-                  initialValue: _subjectName,
-                  decoration: const InputDecoration(labelText: 'Subject Name'),
-                  validator: (value) => value!.isEmpty ? 'Required' : null,
-                  onSaved: (value) => _subjectName = value!,
-                ),
+              DropdownButtonFormField<String>(
+                value: _moduleCode,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Module'),
+                items: modules.map((m) => DropdownMenuItem(
+                  value: m.code,
+                  child: Text(
+                    '${m.code} - ${m.name}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                )).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _moduleCode = value;
+                    final module = modules.firstWhere((m) => m.code == value);
+                    _subjectName = module.name;
+                  });
+                },
+                validator: (value) => value == null ? 'Required' : null,
+              ),
               DropdownButtonFormField<EntryType>(
                 value: _type,
                 decoration: const InputDecoration(labelText: 'Type'),

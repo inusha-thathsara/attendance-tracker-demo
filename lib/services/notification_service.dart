@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
@@ -13,7 +14,6 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {
-
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
@@ -34,56 +34,71 @@ class NotificationService {
 
     // Initialize timezone
     tz.initializeTimeZones();
-    final String timeZoneName = await FlutterTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(timeZoneName));
+    try {
+      final String timeZoneName = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(timeZoneName));
+    } catch (e) {
+      debugPrint('Could not get local timezone: $e');
+      tz.setLocalLocation(tz.getLocation('UTC'));
+    }
   }
 
   Future<void> requestPermissions() async {
-    await flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin>()
-        ?.requestPermissions(
-          alert: true,
-          badge: true,
-          sound: true,
-        );
-
-    await flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
+    if (kIsWeb) return;
+    
+    if (defaultTargetPlatform == TargetPlatform.iOS || 
+        defaultTargetPlatform == TargetPlatform.macOS) {
+      await flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
+    } else if (defaultTargetPlatform == TargetPlatform.android) {
+      await flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission();
+    }
   }
 
   Future<void> scheduleClassNotification(TimeTableEntry entry) async {
-    // Calculate notification time (10 minutes before class)
-    
-    int hour = entry.startTimeHour;
-    int minute = entry.startTimeMinute - 10;
-    if (minute < 0) {
-      minute += 60;
-      hour -= 1;
-    }
-    
-    await flutterLocalNotificationsPlugin.zonedSchedule(
-      entry.id.hashCode,
-      'Upcoming Class: ${entry.subjectName}',
-      '${entry.subjectName} starts in 10 minutes at ${entry.location ?? "Unknown Location"}',
-      _nextInstanceOfDayAndTime(entry.dayOfWeek, hour, minute),
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'class_reminders',
-          'Class Reminders',
-          channelDescription: 'Notifications for upcoming classes',
-          importance: Importance.max,
-          priority: Priority.high,
+    if (kIsWeb || defaultTargetPlatform == TargetPlatform.linux) return; 
+
+    try {
+      // Calculate notification time (10 minutes before class)
+      int hour = entry.startTimeHour;
+      int minute = entry.startTimeMinute - 10;
+      if (minute < 0) {
+        minute += 60;
+        hour -= 1;
+      }
+      
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        entry.id.hashCode,
+        'Upcoming Class: ${entry.subjectName}',
+        '${entry.subjectName} starts in 10 minutes at ${entry.location ?? "Unknown Location"}',
+        _nextInstanceOfDayAndTime(entry.dayOfWeek, hour, minute),
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'class_reminders',
+            'Class Reminders',
+            channelDescription: 'Notifications for upcoming classes',
+            importance: Importance.max,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(),
         ),
-        iOS: DarwinNotificationDetails(),
-      ),
-      androidAllowWhileIdle: true,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-    );
+        androidAllowWhileIdle: true,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+      );
+    } catch (e) {
+      debugPrint('Error scheduling notification: $e');
+    }
   }
 
   tz.TZDateTime _nextInstanceOfDayAndTime(int dayOfWeek, int hour, int minute) {
@@ -110,10 +125,18 @@ class NotificationService {
   }
 
   Future<void> cancelNotification(String entryId) async {
-    await flutterLocalNotificationsPlugin.cancel(entryId.hashCode);
+    try {
+      await flutterLocalNotificationsPlugin.cancel(entryId.hashCode);
+    } catch (e) {
+      debugPrint('Error cancelling notification: $e');
+    }
   }
 
   Future<void> cancelAllNotifications() async {
-    await flutterLocalNotificationsPlugin.cancelAll();
+    try {
+      await flutterLocalNotificationsPlugin.cancelAll();
+    } catch (e) {
+      debugPrint('Error cancelling all notifications: $e');
+    }
   }
 }

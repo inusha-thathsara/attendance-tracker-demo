@@ -28,9 +28,16 @@ class Module {
     return Module(
       code: map['code'] ?? '',
       name: map['name'] ?? '',
-      credits: (map['credits'] ?? 0).toDouble(),
+      credits: _parseCredits(map['credits']),
       lecturerName: map['lecturerName'] ?? '',
       note: map['note'],
     );
+  }
+
+  static double _parseCredits(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
   }
 }

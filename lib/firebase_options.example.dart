@@ -41,46 +41,46 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDvZ971kzksVl73lOf2FcmgfG7AS12ZM00',
-    appId: '1:610395104712:web:b74b3e2ef7ecd44682ccfd',
-    messagingSenderId: '610395104712',
-    projectId: 'attendance-tracker-5d550',
-    authDomain: 'attendance-tracker-5d550.firebaseapp.com',
-    storageBucket: 'attendance-tracker-5d550.firebasestorage.app',
+    apiKey: '[YOUR_WEB_API_KEY]',
+    appId: '[YOUR_WEB_APP_ID]',
+    messagingSenderId: '[YOUR_SENDER_ID]',
+    projectId: '[YOUR_PROJECT_ID]',
+    authDomain: '[YOUR_PROJECT_ID].firebaseapp.com',
+    storageBucket: '[YOUR_PROJECT_ID].firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyC3nDWmtuENB7kbqod3ZZK8y318pacAi7M',
-    appId: '1:610395104712:android:61c6d9479ce3df3882ccfd',
-    messagingSenderId: '610395104712',
-    projectId: 'attendance-tracker-5d550',
-    storageBucket: 'attendance-tracker-5d550.firebasestorage.app',
+    apiKey: '[YOUR_ANDROID_API_KEY]',
+    appId: '[YOUR_ANDROID_APP_ID]',
+    messagingSenderId: '[YOUR_SENDER_ID]',
+    projectId: '[YOUR_PROJECT_ID]',
+    storageBucket: '[YOUR_PROJECT_ID].firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCjz5TgBs1qaGXIHiRIarq_ykJadRB4QGA',
-    appId: '1:610395104712:ios:3aaaef7f68936a3a82ccfd',
-    messagingSenderId: '610395104712',
-    projectId: 'attendance-tracker-5d550',
-    storageBucket: 'attendance-tracker-5d550.firebasestorage.app',
+    apiKey: '[YOUR_IOS_API_KEY]',
+    appId: '[YOUR_IOS_APP_ID]',
+    messagingSenderId: '[YOUR_SENDER_ID]',
+    projectId: '[YOUR_PROJECT_ID]',
+    storageBucket: '[YOUR_PROJECT_ID].firebasestorage.app',
     iosBundleId: 'com.example.attendanceTracker',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyCjz5TgBs1qaGXIHiRIarq_ykJadRB4QGA',
-    appId: '1:610395104712:ios:3aaaef7f68936a3a82ccfd',
-    messagingSenderId: '610395104712',
-    projectId: 'attendance-tracker-5d550',
-    storageBucket: 'attendance-tracker-5d550.firebasestorage.app',
+    apiKey: '[YOUR_MACOS_API_KEY]',
+    appId: '[YOUR_MACOS_APP_ID]',
+    messagingSenderId: '[YOUR_SENDER_ID]',
+    projectId: '[YOUR_PROJECT_ID]',
+    storageBucket: '[YOUR_PROJECT_ID].firebasestorage.app',
     iosBundleId: 'com.example.attendanceTracker',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDvZ971kzksVl73lOf2FcmgfG7AS12ZM00',
-    appId: '1:610395104712:web:eb14c65b2117ef9782ccfd',
-    messagingSenderId: '610395104712',
-    projectId: 'attendance-tracker-5d550',
-    authDomain: 'attendance-tracker-5d550.firebaseapp.com',
-    storageBucket: 'attendance-tracker-5d550.firebasestorage.app',
+    apiKey: '[YOUR_WINDOWS_API_KEY]',
+    appId: '[YOUR_WINDOWS_APP_ID]',
+    messagingSenderId: '[YOUR_SENDER_ID]',
+    projectId: '[YOUR_PROJECT_ID]',
+    authDomain: '[YOUR_PROJECT_ID].firebaseapp.com',
+    storageBucket: '[YOUR_PROJECT_ID].firebasestorage.app',
   );
 }

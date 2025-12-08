@@ -11,6 +11,7 @@ import 'providers/timetable_provider.dart';
 import 'providers/attendance_provider.dart';
 import 'providers/module_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/user_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/notification_service.dart';
@@ -44,8 +45,9 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => TimetableProvider()),
         ChangeNotifierProvider(create: (_) => AttendanceProvider()),
-        ChangeNotifierProvider(create: (_) => ModuleProvider()),
+        ChangeNotifierProvider(create: (_) => ModuleProvider(), lazy: false),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => UserProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {

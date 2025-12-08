@@ -1,9 +1,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow users to read and write only their own data
+    // Existing rule for user data
     match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // New rule for shared timetables
+    match /shared_timetables/{shareId} {
+      allow create: if request.auth != null; // Allow any logged-in user to share
+      allow read: if request.auth != null;   // Allow any logged-in user to fetch/import
     }
   }
 }
