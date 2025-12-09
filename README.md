@@ -79,13 +79,25 @@ A powerful, cross-platform Flutter application designed to help university stude
     flutter run
     ```
 
-## 📸 Screenshots (Not updated)
+## 📸 Screenshots
 
-![Timetable Selection (Dark Mode)](assets/screenshots/timetable_selection_dark.png)
-![Modules (Light Mode)](assets/screenshots/modules_light.png)
-![Stats (Light Mode)](assets/screenshots/stats_light.png)
-![Stats (Dark Mode)](assets/screenshots/stats_dark.png)
-![Timetable (Dark Mode)](assets/screenshots/timetable_dark.png)
+### Mobile
+| Login | Timetable (Calendar) |
+|:---:|:---:|
+| ![Login](assets/screenshots/login_web_darkmode.png) | ![Classes](assets/screenshots/classes_calendarview_mobile_darkmode.png) |
+
+| Profile & Avatars | QR Sharing |
+|:---:|:---:|
+| ![Profile](assets/screenshots/profile_mobile_darkmode.jpg) | ![QR Share](assets/screenshots/share_timetable_qr_mobile_darmode.png) |
+
+| Stats | Navigation |
+|:---:|:---:|
+| ![Stats](assets/screenshots/stats_mobile_lightmode.png) | ![Navbar](assets/screenshots/navbar_mobile_lightmode.png) |
+
+### Web / Desktop
+| AI Import | API Settings |
+|:---:|:---:|
+| ![AI Import](assets/screenshots/ai_import_web_darkmode.png) | ![API Mobile](assets/screenshots/api_mobile_darkmode.png) |
 
 ## 📄 License
 
